@@ -22,9 +22,23 @@ export default function App() {
     const [dice, setDice] = useState(() => generateAllNewDice())
     const newGameButtonRef = useRef(null)
 
+    const [rollCount, setRollCount] = useState(0)
+    const [time, setTime] = useState(0)
+
+
     const gameWon = 
         dice.every(die => die.isHeld) && 
         dice.every(die => die.value === dice[0].value)
+    
+    useEffect(() => {
+        if (!gameWon) {
+            const intervalId = setInterval(() => {
+                setTime(prevTime => prevTime + 1)
+            }, 1000)
+
+            return () => clearInterval(intervalId)
+        }
+    }, [gameWon])
 
     useEffect(() => {
         if (gameWon) {
@@ -35,13 +49,22 @@ export default function App() {
     function rollDice() {
         if (gameWon) {
             setDice(generateAllNewDice())
+            setRollCount(0)
+            setTime(0)
             return
-        } else {
-            setDice(oldDice => oldDice.map(die => {
-                return die.isHeld ? die : {...die, value: Math.ceil(Math.random() * 6) }
-            }))
         }
+
+        setDice(oldDice =>
+            oldDice.map(die =>
+                die.isHeld
+                    ? die
+                    : { ...die, value: Math.ceil(Math.random() * 6) }
+            )
+        )
+
+        setRollCount(prev => prev + 1)
     }
+
 
     function hold(id) {
         setDice(oldDice => oldDice.map(die => {
@@ -63,13 +86,25 @@ export default function App() {
             {gameWon && <Confetti width={width} height={height} />}
 
             <div aria-live="polite" className="sr-only">
-                {gameWon && <p>Congratulations! You won! Press "New Game" to start again.</p>}
+                {gameWon && (
+                    <p>
+                        Congratulations! You won in {rollCount} rolls and {time} seconds.
+                        Press "New Game" to start again.
+                    </p>
+                )}
             </div>
+
 
             <h1 className="title">Tenzies</h1>
 
             <p className="instructions"> Roll until all dice are the same. Click each die to freeze it at its current value between rolls.
             </p>
+
+            <div className="stats">
+                <p>⏱ Time: {time}s</p>
+                <p>🎲 Rolls: {rollCount}</p>
+            </div>
+
 
             <div className="dice-container">
                 {diceElements}
